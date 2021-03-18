@@ -23,28 +23,57 @@ application to the school
 
 Пример запроса:
 ```json
-  POST /couriers
+POST /couriers
+{
+  "data": [
+    {
+      "courier_id": 1,
+      "courier_type": "foot",
+      "regions": [1, 12, 22],
+      "working_hours": ["11:35-14:05", "09:00-11:00"]
+    },
+    {
+      "courier_id": 2,
+      "courier_type": "bike",
+      "regions": [22],
+      "working_hours": ["09:00-18:00"]
+    },
+    {
+      "courier_id": 3,
+      "courier_type": "car",
+      "regions": [12, 22, 23, 33],
+      "working_hours": []
+    },
+    ...
+  ]
+}
+```
+
+Поле | Тип | Описание
+--- | --- | ---
+courier_id | Целое положительное число | Уникальный идентификатор курьера, положительное число.
+courier_type | Строка | Тип курьера. Возможные значения: <ul><li>`foot`  — пеший курьер</li><li>`bike`  — велокурьер</li><li>`car`  — курьер на автомобиле</li></ul>
+regions | Массив целых положительных чисел | Список идентификаторов районов, в которых работает курьер.
+working_hours | Массив строк | График работы курьера. Формат строки  HH:MM-HH:MM. Есть гарантия на то, что промежутки, переданные тестирующей системой, не будут пересекаться.
+
+Все поля обязательны.
+
+В случае, если в наборе есть неописанные поля или какие-либо из полей отсутствуют — следует вернуть ошибку  HTTP
+400 Bad Request  и список id, которые не удалось провалидировать.
+
+```json
+HTTP 400 Bad Request
   {
-    "data": [
-      {
-        "courier_id": 1,
-        "courier_type": "foot",
-        "regions": [1, 12, 22],
-        "working_hours": ["11:35-14:05", "09:00-11:00"]
-      },
-      {
-        "courier_id": 2,
-        "courier_type": "bike",
-        "regions": [22],
-        "working_hours": ["09:00-18:00"]
-      },
-      {
-        "courier_id": 3,
-        "courier_type": "car",
-        "regions": [12, 22, 23, 33],
-        "working_hours": []
-      },
-      ...
-    ]
+    "validation_error": {
   }
+}
+```
+
+В случае успеха — вернуть ответ  HTTP 201 Created  и списком импортированных id.
+
+```json
+HTTP 201 Created
+{
+  "couriers": [{"id": 1}, {"id": 2}, {"id": 3}]
+}
 ```
