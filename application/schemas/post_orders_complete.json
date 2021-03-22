@@ -1,0 +1,23 @@
+{
+    "title": "Order is delivered",
+    "type": "object",
+    "properties": {
+        "courier_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+        },
+        "order_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+        },
+        "complete_time": {
+            "type": "date-time"
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "courier_id",
+        "order_id",
+        "complete_time"
+    ]
+}
