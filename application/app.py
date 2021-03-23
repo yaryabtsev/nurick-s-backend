@@ -34,7 +34,7 @@ def post_couriers():
 
 
 @app.route('/orders', methods=['POST'])
-def post_couriers():
+def post_orders():
     if not request.is_json:
         raise BadRequest('Content-Type must be application/json')
     import_data = request.get_json()
@@ -50,8 +50,36 @@ def post_couriers():
         db_session.add(newCourier)
         orders["orders"].append({'id': order['orders_id']})
     db_session.commit()
-    print(Courier.query.all())
     return jsonify(orders), 200
+
+
+@app.route('/orders/assign', methods=['POST'])
+def post_orders_assign():
+    if not request.is_json:
+        raise BadRequest('Content-Type must be application/json')
+    import_data = request.get_json()
+    # TODO:errors = validate_orders(import_data)
+    # if errors:
+    #    return jsonify(errors), 400
+    courier = Courier.query.filter_by(courier_id=import_data["courier_id"]).first()
+    if not courier:
+        raise BadRequest('incorrect id')
+    maxweight = 10
+    if courier.courier_type == "bike":
+        maxweight = 15
+    elif courier.courier_type == "car":
+        maxweight = 50
+    regions = pickle.loads(courier.regions)
+    orders = Order.query.filter(Order.assign_time is None, Order.weight <= maxweight, Order.region in regions)
+    # TODO: datetime check
+    response = {"orders": [], "assign_time": ""}
+    for order in orders:
+        order.assign_time = datetime.now()
+        order.courier_id = courier.courier_id
+        response["orders"].append({'id': order['orders_id']})
+    response["assign_time"] = "{}-{}-{}T{}:{}.{}Z".format(*[_ for _ in datetime.now().timetuple()][:6])
+    db_session.commit()
+    return jsonify(response), 200
 
 
 @app.route('/couriers/<int:courier_id>', methods=['PATCH'])

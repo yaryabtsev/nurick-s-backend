@@ -44,6 +44,8 @@ class Order(BaseModel):
     weight = Column(Float, nullable=False)
     region = Column(Integer, nullable=False)
     delivery_hours = Column(VARCHAR(255), nullable=False)
+    assign_time = Column(TIMESTAMP)
+    courier_id = Column(Integer, nullable=False)
 
     def __repr__(self):
         return f'{self.courier_type}_courier#{self.courier_id}'
