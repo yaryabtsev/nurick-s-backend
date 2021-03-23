@@ -80,6 +80,7 @@ def post_orders_assign():
         # TODO: datetime check
         order.assign_time = datetime.now()
         order.courier_id = courier.courier_id
+        order.updated_at = datetime.now()
         response["orders"].append({'id': order['orders_id']})
     response["assign_time"] = "{}-{}-{}T{}:{}.{}Z".format(*[_ for _ in datetime.now().timetuple()][:6])
     db_session.commit()
@@ -87,7 +88,7 @@ def post_orders_assign():
 
 
 @app.route('/orders/complete', methods=['POST'])
-def post_orders_assign():
+def post_orders_complete():
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
     import_data = request.get_json()
@@ -99,6 +100,18 @@ def post_orders_assign():
     if not order:
         raise BadRequest('incorrect ids')
     order.complete_time = datetime.now()
+    order.updated_at = datetime.now()
+    courier = Courier.query.filter_by(courier_id=import_data["courier_id"]).first()
+    if not order:
+        raise BadRequest('incorrect courier_id')
+    c = 2
+    if courier.courier_type == "bike":
+        c = 5
+    elif courier.courier_type == "car":
+        c = 9
+    courier.earnings += 500 * c
+    # TODO: update rating
+    courier.updated_at = datetime.now()
     db_session.commit()
     return jsonify({"order_id": import_data["order_id":]}), 200
 
@@ -129,6 +142,22 @@ def update_couriers(courier_id):
     db_session.commit()
     # TODO: update orders
     return jsonify(json_courier), 200
+
+
+@app.route('/couriers/<int:courier_id>', methods=['GET'])
+def get_couriers(courier_id):
+    courier = Courier.query.filter_by(courier_id=courier_id).first()
+    if not courier:
+        raise BadRequest('incorrect id')
+    json_courier = {}
+    for key in ["courier_id", "courier_type", "regions", "working_hours", "rating", "earnings"]:
+        if key == "rating" and courier.rating == 0:
+            continue
+        if key in ["regions", "working_hours"]:
+            json_courier[key] = pickle.loads(courier.__dict__[key])
+        else:
+            json_courier[key] = courier.__dict__[key]
+    return jsonify(json_courier)
 
 
 @app.route('/')
