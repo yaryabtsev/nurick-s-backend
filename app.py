@@ -17,12 +17,10 @@ validator = Validator()
 def post_couriers():
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
-
     import_data = request.get_json()
     errors = validator.couriers(import_data)
     if errors:
         return jsonify(errors), 400
-
     couriers = {'couriers': []}
     for courier in import_data['data']:
         new_courier = Courier(updated_at=datetime.now(), courier_id=courier['courier_id'],
@@ -40,12 +38,10 @@ def post_couriers():
 def post_orders():
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
-
     import_data = request.get_json()
     errors = validator.orders(import_data)
     if errors:
         return jsonify(errors), 400
-
     orders = {'orders': []}
     for order in import_data['data']:
         new_order = Order(updated_at=datetime.now(), order_id=order['order_id'],
@@ -63,27 +59,25 @@ def post_orders():
 def post_orders_assign():
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
-
     import_data = request.get_json()
     errors = validator.orders_assign(import_data)
     if errors:
         return jsonify(errors), 400
-
     courier = Courier.query.filter_by(courier_id=import_data["courier_id"]).first()
     if not courier:
         raise BadRequest('incorrect id')
-    maxweight = 10
+    max_weight = 10
     if courier.courier_type == "bike":
-        maxweight = 15
+        max_weight = 15
     elif courier.courier_type == "car":
-        maxweight = 50
+        max_weight = 50
     regions = pickle.loads(courier.regions)
     orders = Order.query.filter(Order.assign_time == datetime(1, 1, 1), Order.courier_id == 0,
                                 Order.complete_time == datetime(1, 1, 1),
-                                Order.weight <= maxweight, Order.region in regions)
-    # TODO: datetime check
+                                Order.weight <= max_weight, Order.region in regions)
     response = {"orders": [], "assign_time": ""}
     for order in orders:
+        # TODO: datetime check
         order.assign_time = datetime.now()
         order.courier_id = courier.courier_id
         response["orders"].append({'id': order['orders_id']})
@@ -92,16 +86,31 @@ def post_orders_assign():
     return jsonify(response), 200
 
 
+@app.route('/orders/complete', methods=['POST'])
+def post_orders_assign():
+    if not request.is_json:
+        raise BadRequest('Content-Type must be validator/json')
+    import_data = request.get_json()
+    # TODO: errors = validator.orders_complete(import_data)
+    # if errors:
+    #    return jsonify(errors), 400
+    order = Order.query.filter_by(order_id=import_data["order_id"], courier_id=import_data["courier_id"],
+                                  complete_time=datetime(1, 1, 1)).first()
+    if not order:
+        raise BadRequest('incorrect ids')
+    order.complete_time = datetime.now()
+    db_session.commit()
+    return jsonify({"order_id": import_data["order_id":]}), 200
+
+
 @app.route('/couriers/<int:courier_id>', methods=['PATCH'])
 def update_couriers(courier_id):
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
-
     import_data = request.get_json()
     errors = validator.patch_courier_id(import_data)
     if errors:
         return jsonify(errors), 400
-
     courier = Courier.query.filter_by(courier_id=courier_id).first()
     if not courier:
         raise BadRequest('incorrect id')
@@ -110,7 +119,6 @@ def update_couriers(courier_id):
             courier.__dict__[key] = pickle.dumps(import_data[key])
         else:
             courier.__dict__[key] = import_data[key]
-
     json_courier = {}
     for key in ["courier_id", "courier_type", "regions", "working_hours"]:
         if key in ["regions", "working_hours"]:
@@ -124,7 +132,7 @@ def update_couriers(courier_id):
 
 
 @app.route('/')
-@app.route('/index/', methods=['GET', 'POST'])
+@app.route('/index', methods=['GET', 'POST'])
 def hello_world():
     return "Hell world!", 200
 
