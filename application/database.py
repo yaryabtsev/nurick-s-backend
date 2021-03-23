@@ -2,7 +2,7 @@ import datetime
 import os
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, TIMESTAMP, VARCHAR, create_engine
+from sqlalchemy import Column, Integer, TIMESTAMP, VARCHAR, create_engine, Float
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -32,6 +32,18 @@ class Courier(BaseModel):
     courier_type = Column(VARCHAR(255), nullable=False)
     regions = Column(VARCHAR(255), nullable=False)
     working_hours = Column(VARCHAR(255), nullable=False)
+
+    def __repr__(self):
+        return f'{self.courier_type}_courier#{self.courier_id}'
+
+
+class Order(BaseModel):
+    __tablename__ = 'orders'
+
+    order_id = Column(Integer, unique=True, nullable=False)
+    weight = Column(Float, nullable=False)
+    region = Column(Integer, nullable=False)
+    delivery_hours = Column(VARCHAR(255), nullable=False)
 
     def __repr__(self):
         return f'{self.courier_type}_courier#{self.courier_id}'

@@ -36,6 +36,17 @@ class SomeTestCase(unittest.TestCase):
         self.assertEqual(response.json, {"courier_id": 1, "courier_type": "bike", "regions": [1, 12, 22],
                                          "working_hours": ["11:35-14:05", "09:00-11:00"]})
 
+    def test_post_orders_1(self):
+        tester = app.app.test_client(self)
+        json_data = {
+            "data": [
+                {"order_id": 1, "weight": 0.23, "region": 12, "delivery_hours": ["09:00-18:00"]},
+                {"order_id": 2, "weight": 15, "region": 1, "delivery_hours": ["09:00-18:00"]},
+                {"order_id": 3, "weight": 0.01, "region": 22, "delivery_hours": ["09:00-12:00", "16:00-21:30"]}]}
+        # response = tester.post('/orders', json=json_data)
+        # self.assertEqual(response.status_code, 200)
+        # self.assertEqual(response.json, {'orders': [{'id': order['orders_id']} for orders in json_data["data"]]})
+
 
 if __name__ == '__main__':
     unittest.main()

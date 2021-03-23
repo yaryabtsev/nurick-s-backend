@@ -4,8 +4,8 @@ from datetime import datetime
 from flask import Flask, request, Response, jsonify
 from werkzeug.exceptions import BadRequest
 
-from database import Courier, db_session, init_db
-from validator import validate_couriers
+from database import Courier, db_session, init_db, Order
+from validator import validate_couriers, validate_patch_courier
 import pickle
 
 app = Flask(__name__)
@@ -33,12 +33,35 @@ def post_couriers():
     return jsonify(couriers), 200
 
 
-@app.route('/couriers/<int:courier_id>/', methods=['PATCH'])
-def update_couriers(courier_id):
-    print(courier_id)
+@app.route('/orders', methods=['POST'])
+def post_couriers():
     if not request.is_json:
         raise BadRequest('Content-Type must be application/json')
     import_data = request.get_json()
+    # TODO:errors = validate_orders(import_data)
+    # if errors:
+    #    return jsonify(errors), 400
+    orders = {"orders": []}
+    for order in import_data['data']:
+        newCourier = Courier(updated_at=datetime.now(), courier_id=order["order_id"],
+                             weight=order["weight"], region=order["region"],
+                             delivery_hours=pickle.dumps(order["working_hours"]))
+        # TODO: sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: orders.order_id
+        db_session.add(newCourier)
+        orders["orders"].append({'id': order['orders_id']})
+    db_session.commit()
+    print(Courier.query.all())
+    return jsonify(orders), 200
+
+
+@app.route('/couriers/<int:courier_id>', methods=['PATCH'])
+def update_couriers(courier_id):
+    if not request.is_json:
+        raise BadRequest('Content-Type must be application/json')
+    import_data = request.get_json()
+    errors = validate_patch_courier(import_data)
+    if errors:
+        return jsonify(errors), 400
     courier = Courier.query.filter_by(courier_id=courier_id).first()
     if not courier:
         raise BadRequest('incorrect id')
@@ -54,6 +77,7 @@ def update_couriers(courier_id):
             json_courier[key] = pickle.loads(courier.__dict__[key])
         else:
             json_courier[key] = courier.__dict__[key]
+    courier.updated_at = datetime.now()
     db_session.commit()
     # TODO: update orders
     return jsonify(json_courier), 200
