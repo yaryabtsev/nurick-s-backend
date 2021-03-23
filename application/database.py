@@ -16,7 +16,7 @@ Base.query = db_session.query_property()
 
 class BaseModel(Base):
     __abstract__ = True
-
+    # TODO зачем нужны все эти три поля? id у курьера и у товара и есть primary key
     id = Column(Integer, nullable=False, unique=True, primary_key=True, autoincrement=True)
     created_at = Column(TIMESTAMP, nullable=False, default=datetime.datetime.utcnow)
     updated_at = Column(TIMESTAMP, nullable=False)
@@ -28,11 +28,13 @@ class BaseModel(Base):
 class Courier(BaseModel):
     __tablename__ = 'couriers'
 
+    # TODO нужно добавить зп и рейтинг курьера
     courier_id = Column(Integer, unique=True, nullable=False)
     courier_type = Column(VARCHAR(255), nullable=False)
     regions = Column(VARCHAR(255), nullable=False)
     working_hours = Column(VARCHAR(255), nullable=False)
 
+    # TODO зачем в таком виде оставлять
     def __repr__(self):
         return f'{self.courier_type}_courier#{self.courier_id}'
 
@@ -46,7 +48,9 @@ class Order(BaseModel):
     delivery_hours = Column(VARCHAR(255), nullable=False)
     assign_time = Column(TIMESTAMP)
     courier_id = Column(Integer, nullable=False)
+    complete_time = Column(TIMESTAMP)
 
+    # TODO метод __repr__ упадет
     def __repr__(self):
         return f'{self.courier_type}_courier#{self.courier_id}'
 

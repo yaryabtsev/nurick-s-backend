@@ -1,0 +1,14 @@
+{
+    "title": "Post orders assign",
+    "type": "object",
+    "properties": {
+        "courier_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+        }
+    },
+    "additionalProperties": false,
+    "required": [
+        "courier_id"
+    ]
+}
