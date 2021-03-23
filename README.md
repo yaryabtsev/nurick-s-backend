@@ -63,7 +63,7 @@ working_hours | Массив строк | График работы курьер
 
 ```json
 HTTP 400 Bad Request
-  {
+{
     "validation_error": {
   }
 }
