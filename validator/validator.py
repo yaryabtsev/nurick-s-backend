@@ -1,18 +1,17 @@
 import os
 import json
 import jsonschema
-from flask import jsonify
 from jsonschema import ValidationError
 
 
 class Validator:
     def __init__(self):
         self.post_schema = _load_schema('post_schema.json')
-        self.courier_info = _load_schema('courier_schema.json')
-        self.patch_courier_id = _load_schema('patch_courier_id.json')
-        self.orders_info = _load_schema('orders_schema.json')
-        self.orders_is_complete = _load_schema('post_orders_complete.json')
-        self.orders_assign = _load_schema('orders_assign.json')
+        self.courier_info_schema = _load_schema('courier_schema.json')
+        self.patch_courier_id_schema = _load_schema('patch_courier_id.json')
+        self.orders_info_schema = _load_schema('orders_schema.json')
+        self.orders_is_complete_schema = _load_schema('post_orders_complete.json')
+        self.orders_assign_schema = _load_schema('orders_assign.json')
 
     def couriers(self, data: dict) -> dict:
         validation_error = _validate_schema(data, self.post_schema)
@@ -23,7 +22,7 @@ class Validator:
         incorrect_couriers = dict()
         for courier in data['data']:
             try:
-                jsonschema.validate(courier, self.courier_info)
+                jsonschema.validate(courier, self.courier_info_schema)
             except ValidationError:
                 if len(incorrect_couriers) == 0:
                     incorrect_couriers['couriers'] = list()
@@ -40,7 +39,7 @@ class Validator:
         incorrect_orders = dict()
         for order in data['data']:
             try:
-                jsonschema.validate(order, self.orders_info)
+                jsonschema.validate(order, self.orders_info_schema)
             except ValidationError:
                 if len(incorrect_orders) == 0:
                     incorrect_orders['orders'] = list()
@@ -50,13 +49,13 @@ class Validator:
         return validation_error
 
     def orders_assign(self, data: dict) -> dict:
-        return _validate_schema(data, self.orders_assign)
+        return _validate_schema(data, self.orders_assign_schema)
 
     def patch_courier_id(self, data: dict) -> dict:
-        return _validate_schema(data, self.patch_courier_id)
+        return _validate_schema(data, self.patch_courier_id_schema)
 
     def orders_is_complete(self, data: dict) -> dict:
-        return _validate_schema(data, self.orders_is_complete)
+        return _validate_schema(data, self.orders_is_complete_schema)
 
 
 def _validate_schema(data: dict, schema: dict) -> dict:

@@ -1,9 +1,11 @@
 import os
 from datetime import datetime
-from flask import Flask, request, Response, jsonify
+from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
-from database import Courier, db_session, init_db, Order
-from validator import Validator
+from database.base import db_session, init_db
+from database.order import Order
+from database.courier import Courier
+from validator.validator import Validator
 import pickle
 
 app = Flask(__name__)
@@ -14,7 +16,7 @@ validator = Validator()
 @app.route('/couriers', methods=['POST'])
 def post_couriers():
     if not request.is_json:
-        raise BadRequest('Content-Type must be application/json')
+        raise BadRequest('Content-Type must be validator/json')
 
     import_data = request.get_json()
     errors = validator.couriers(import_data)
@@ -25,11 +27,9 @@ def post_couriers():
     for courier in import_data['data']:
         new_courier = Courier(updated_at=datetime.now(), courier_id=courier['courier_id'],
                               courier_type=courier['courier_type'],
-                              regions=courier['regions'],
-                              working_hours=courier['working_hours'])
+                              regions=pickle.dumps(courier['regions']),
+                              working_hours=pickle.dumps(courier['working_hours']))
         # TODO: sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: couriers.courier_id
-        # TODO не понятно
-
         db_session.add(new_courier)
         couriers['couriers'].append({'id': courier['courier_id']})
     db_session.commit()
@@ -39,7 +39,7 @@ def post_couriers():
 @app.route('/orders', methods=['POST'])
 def post_orders():
     if not request.is_json:
-        raise BadRequest('Content-Type must be application/json')
+        raise BadRequest('Content-Type must be validator/json')
 
     import_data = request.get_json()
     errors = validator.orders(import_data)
@@ -50,7 +50,8 @@ def post_orders():
     for order in import_data['data']:
         new_order = Order(updated_at=datetime.now(), order_id=order['order_id'],
                           weight=order['weight'], region=order['region'],
-                          delivery_hours=order['delivery_hours'])
+                          delivery_hours=pickle.dumps(order['delivery_hours']), assign_time=datetime(1, 1, 1),
+                          complete_time=datetime(1, 1, 1), courier_id=0)
         # TODO: sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: orders.order_id
         db_session.add(new_order)
         orders['orders'].append({'id': order['order_id']})
@@ -61,13 +62,13 @@ def post_orders():
 @app.route('/orders/assign', methods=['POST'])
 def post_orders_assign():
     if not request.is_json:
-        raise BadRequest('Content-Type must be application/json')
+        raise BadRequest('Content-Type must be validator/json')
 
     import_data = request.get_json()
     errors = validator.orders_assign(import_data)
     if errors:
         return jsonify(errors), 400
-    
+
     courier = Courier.query.filter_by(courier_id=import_data["courier_id"]).first()
     if not courier:
         raise BadRequest('incorrect id')
@@ -77,7 +78,9 @@ def post_orders_assign():
     elif courier.courier_type == "car":
         maxweight = 50
     regions = pickle.loads(courier.regions)
-    orders = Order.query.filter(Order.assign_time is None, Order.weight <= maxweight, Order.region in regions)
+    orders = Order.query.filter(Order.assign_time == datetime(1, 1, 1), Order.courier_id == 0,
+                                Order.complete_time == datetime(1, 1, 1),
+                                Order.weight <= maxweight, Order.region in regions)
     # TODO: datetime check
     response = {"orders": [], "assign_time": ""}
     for order in orders:
@@ -92,7 +95,7 @@ def post_orders_assign():
 @app.route('/couriers/<int:courier_id>', methods=['PATCH'])
 def update_couriers(courier_id):
     if not request.is_json:
-        raise BadRequest('Content-Type must be application/json')
+        raise BadRequest('Content-Type must be validator/json')
 
     import_data = request.get_json()
     errors = validator.patch_courier_id(import_data)
@@ -110,7 +113,6 @@ def update_couriers(courier_id):
 
     json_courier = {}
     for key in ["courier_id", "courier_type", "regions", "working_hours"]:
-        print(courier.__dict__[key])
         if key in ["regions", "working_hours"]:
             json_courier[key] = pickle.loads(courier.__dict__[key])
         else:
@@ -119,6 +121,12 @@ def update_couriers(courier_id):
     db_session.commit()
     # TODO: update orders
     return jsonify(json_courier), 200
+
+
+@app.route('/')
+@app.route('/index/', methods=['GET', 'POST'])
+def hello_world():
+    return "Hell world!", 200
 
 
 @app.teardown_appcontext
