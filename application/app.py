@@ -16,7 +16,6 @@ app.debug = True
 def post_couriers():
     if not request.is_json:
         raise BadRequest('Content-Type must be application/json')
-
     import_data = request.get_json()
     errors = validate_couriers(import_data)
     if errors:
@@ -32,6 +31,32 @@ def post_couriers():
     db_session.commit()
     print(Courier.query.all())
     return jsonify(couriers), 200
+
+
+@app.route('/couriers/<int:courier_id>/', methods=['PATCH'])
+def update_couriers(courier_id):
+    print(courier_id)
+    if not request.is_json:
+        raise BadRequest('Content-Type must be application/json')
+    import_data = request.get_json()
+    courier = Courier.query.filter_by(courier_id=courier_id).first()
+    if not courier:
+        raise BadRequest('incorrect id')
+    for key in import_data:
+        if key in ["regions", "working_hours"]:
+            courier.__dict__[key] = pickle.dumps(import_data[key])
+        else:
+            courier.__dict__[key] = import_data[key]
+    json_courier = {}
+    for key in ["courier_id", "courier_type", "regions", "working_hours"]:
+        print(courier.__dict__[key])
+        if key in ["regions", "working_hours"]:
+            json_courier[key] = pickle.loads(courier.__dict__[key])
+        else:
+            json_courier[key] = courier.__dict__[key]
+    db_session.commit()
+    # TODO: update orders
+    return jsonify(json_courier), 200
 
 
 @app.route('/')

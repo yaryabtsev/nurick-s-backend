@@ -16,7 +16,7 @@ class BasicTestCase(unittest.TestCase):
 
 
 class SomeTestCase(unittest.TestCase):
-    def test_post_couriers(self):
+    def test_post_couriers_1(self):
         tester = app.app.test_client(self)
         json_data = {"data": [
             {"courier_id": 1, "courier_type": "foot", "regions": [1, 12, 22],
@@ -24,9 +24,17 @@ class SomeTestCase(unittest.TestCase):
             {"courier_id": 2, "courier_type": "bike", "regions": [22, 1], "working_hours": ["09:00-18:00"]},
             {"courier_id": 3, "courier_type": "car", "regions": [12, 22, 23, 33], "working_hours": ["09:00-18:00"]}]
         }
-        response = tester.post('/couriers', json=json_data)
+        # response = tester.post('/couriers', json=json_data)
+        # self.assertEqual(response.status_code, 200)
+        # self.assertEqual(response.json, {'couriers': [{'id': courier['courier_id']} for courier in json_data["data"]]})
+
+    def test_patch_couriers_id_1(self):
+        tester = app.app.test_client(self)
+        json_data = {"courier_type": "bike"}
+        response = tester.patch('/couriers/1/', json=json_data)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, {'couriers': [{'id': courier['courier_id']} for courier in json_data["data"]]})
+        self.assertEqual(response.json, {"courier_id": 1, "courier_type": "bike", "regions": [1, 12, 22],
+                                         "working_hours": ["11:35-14:05", "09:00-11:00"]})
 
 
 if __name__ == '__main__':
