@@ -61,7 +61,7 @@ class Validator:
 def _validate_schema(data: dict, schema: dict) -> dict:
     validation_error = dict()
     try:
-        jsonschema.validate(data, schema)
+        jsonschema.validate(data, schema, format_checker=jsonschema.FormatChecker())
     except ValidationError as ve:
         validation_error['validation_error'] = ve.message
 
