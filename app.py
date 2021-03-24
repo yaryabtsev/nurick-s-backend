@@ -132,7 +132,7 @@ def post_orders_complete():
                    order.courier_id - Order.query.filter_by(order_id=last_orders_id[regions_idx]).first().complete_time)
     sum_time[regions_idx] += time
     last_orders_id[regions_idx] = order.order_id
-    courier.rating = max(courier.rating, sum_time[regions_idx] / count_orders[regions_idx])
+    courier.rating = max(courier.rating, (60 * 60 - sum_time[regions_idx] / count_orders[regions_idx]) / (60 * 60) * 5)
     courier.sum_time = pickle.dumps(sum_time)
     courier.last_orders_id = pickle.dumps(last_orders_id)
     courier.count_orders = pickle.dumps(count_orders)
