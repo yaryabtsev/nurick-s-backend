@@ -199,8 +199,6 @@ def get_couriers(courier_id):
         raise BadRequest('incorrect id')
     json_courier = {}
     for key in ["courier_id", "courier_type", "regions", "working_hours", "rating", "earnings"]:
-        if key == "rating" and courier.rating == 0:
-            continue
         if key in ["regions", "working_hours"]:
             json_courier[key] = pickle.loads(courier.__dict__[key])
         else:
