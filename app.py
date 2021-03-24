@@ -29,11 +29,7 @@ def post_couriers():
             new_courier = Courier(updated_at=datetime.now(), courier_id=courier['courier_id'],
                                   courier_type=courier['courier_type'],
                                   regions=pickle.dumps(courier['regions']),
-                                  working_hours=pickle.dumps(courier['working_hours']),
-                                  # sum_time=pickle.dumps([0] * len(courier['regions'])),
-                                  # last_orders_id=pickle.dumps([0] * len(courier['regions'])),
-                                  # count_orders=pickle.dumps([0] * len(courier['regions']))
-                                  )
+                                  working_hours=pickle.dumps(courier['working_hours']))
             db_session.add(new_courier)
             couriers['couriers'].append({'id': courier['courier_id']})
         else:
@@ -122,21 +118,6 @@ def post_orders_complete():
     elif courier.courier_type == "car":
         c = 9
     courier.earnings += 500 * c
-    # sum_time = pickle.loads(courier.sum_time)
-    # last_orders_id = pickle.loads(courier.last_orders_id)
-    # count_orders = pickle.loads(courier.count_orders)
-    # regions_idx = pickle.loads(courier.regions).index(order.region)
-    # count_orders[regions_idx] += 1
-    # time = (order.complete_time - order.assign_time).second
-    # if last_orders_id[regions_idx] != 0:
-    #    time = min(time,
-    #               order.courier_id - Order.query.filter_by(order_id=last_orders_id[regions_idx]).first().complete_time)
-    # sum_time[regions_idx] += time
-    # last_orders_id[regions_idx] = order.order_id
-    # courier.rating = max(courier.rating, (60 * 60 - sum_time[regions_idx] / count_orders[regions_idx]) / (60 * 60) * 5)
-    # courier.sum_time = pickle.dumps(sum_time)
-    # courier.last_orders_id = pickle.dumps(last_orders_id)
-    # courier.count_orders = pickle.dumps(count_orders)
     courier.updated_at = datetime.now()
     db_session.commit()
     return jsonify({"order_id": import_data["order_id":]}), 200
