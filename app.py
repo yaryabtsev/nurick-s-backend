@@ -98,9 +98,9 @@ def post_orders_complete():
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
     import_data = request.get_json()
-    # TODO: errors = validator.orders_complete(import_data)
-    # if errors:
-    #    return jsonify(errors), 400
+    errors = validator.orders_is_complete(import_data)
+    if errors:
+        return jsonify(errors), 400
     order = Order.query.filter_by(order_id=import_data["order_id"], courier_id=import_data["courier_id"],
                                   complete_time=datetime(1, 1, 1)).first()
     if not order:
