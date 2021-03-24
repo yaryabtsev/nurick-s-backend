@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import datetime
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import BadRequest
@@ -81,14 +82,15 @@ def post_orders_assign():
     orders = Order.query.filter(Order.assign_time == datetime(1, 1, 1), Order.courier_id == 0,
                                 Order.complete_time == datetime(1, 1, 1),
                                 Order.weight <= max_weight, Order.region in regions)
-    response = {"orders": [], "assign_time": ""}
+    response = {"orders": []}
     for order in orders:
         if check_date(order.delivery_hours, courier.working_hours):
             order.assign_time = datetime.now()
             order.courier_id = courier.courier_id
             order.updated_at = datetime.now()
             response["orders"].append({'id': order['orders_id']})
-    response["assign_time"] = "{}-{}-{}T{}:{}.{}Z".format(*[_ for _ in datetime.now().timetuple()][:6])
+    if response["orders"]:
+        response["assign_time"] = "{}-{}-{}T{}:{}.{}Z".format(*[_ for _ in datetime.now().timetuple()][:6])
     db_session.commit()
     return jsonify(response), 200
 
@@ -105,7 +107,7 @@ def post_orders_complete():
                                   complete_time=datetime(1, 1, 1)).first()
     if not order:
         raise BadRequest('incorrect ids')
-    order.complete_time = datetime.now()
+    order.complete_time = datetime(*list(map(int, re.findall(r'\d+', import_data["complete_time"]))))
     order.updated_at = datetime.now()
     courier = Courier.query.filter_by(courier_id=import_data["courier_id"]).first()
     if not order:
