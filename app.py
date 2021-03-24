@@ -23,13 +23,16 @@ def post_couriers():
         return jsonify(errors), 400
     couriers = {'couriers': []}
     for courier in import_data['data']:
-        new_courier = Courier(updated_at=datetime.now(), courier_id=courier['courier_id'],
-                              courier_type=courier['courier_type'],
-                              regions=pickle.dumps(courier['regions']),
-                              working_hours=pickle.dumps(courier['working_hours']))
-        # TODO: sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: couriers.courier_id
-        db_session.add(new_courier)
-        couriers['couriers'].append({'id': courier['courier_id']})
+        curr_courier = Courier.query.filter_by(courier_id=courier['courier_id']).first()
+        if not curr_courier:
+            new_courier = Courier(updated_at=datetime.now(), courier_id=courier['courier_id'],
+                                  courier_type=courier['courier_type'],
+                                  regions=pickle.dumps(courier['regions']),
+                                  working_hours=pickle.dumps(courier['working_hours']))
+            db_session.add(new_courier)
+            couriers['couriers'].append({'id': courier['courier_id']})
+        else:
+            raise BadRequest(f'couriers with courier_id={courier["courier_id"]} already exists')
     db_session.commit()
     return jsonify(couriers), 201
 
@@ -44,13 +47,16 @@ def post_orders():
         return jsonify(errors), 400
     orders = {'orders': []}
     for order in import_data['data']:
-        new_order = Order(updated_at=datetime.now(), order_id=order['order_id'],
-                          weight=order['weight'], region=order['region'],
-                          delivery_hours=pickle.dumps(order['delivery_hours']), assign_time=datetime(1, 1, 1),
-                          complete_time=datetime(1, 1, 1), courier_id=0)
-        # TODO: sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: orders.order_id
-        db_session.add(new_order)
-        orders['orders'].append({'id': order['order_id']})
+        curr_order = Order.query.filter_by(courier_id=order['order_id']).first()
+        if not curr_order:
+            new_order = Order(updated_at=datetime.now(), order_id=order['order_id'],
+                              weight=order['weight'], region=order['region'],
+                              delivery_hours=pickle.dumps(order['delivery_hours']), assign_time=datetime(1, 1, 1),
+                              complete_time=datetime(1, 1, 1), courier_id=0)
+            db_session.add(new_order)
+            orders['orders'].append({'id': order['order_id']})
+        else:
+            raise BadRequest(f'couriers with order_id={order["order_id"]} already exists')
     db_session.commit()
     return jsonify(orders), 201
 
@@ -77,11 +83,11 @@ def post_orders_assign():
                                 Order.weight <= max_weight, Order.region in regions)
     response = {"orders": [], "assign_time": ""}
     for order in orders:
-        # TODO: datetime check
-        order.assign_time = datetime.now()
-        order.courier_id = courier.courier_id
-        order.updated_at = datetime.now()
-        response["orders"].append({'id': order['orders_id']})
+        if check_date(order.delivery_hours, courier.working_hours):
+            order.assign_time = datetime.now()
+            order.courier_id = courier.courier_id
+            order.updated_at = datetime.now()
+            response["orders"].append({'id': order['orders_id']})
     response["assign_time"] = "{}-{}-{}T{}:{}.{}Z".format(*[_ for _ in datetime.now().timetuple()][:6])
     db_session.commit()
     return jsonify(response), 200
@@ -116,6 +122,17 @@ def post_orders_complete():
     return jsonify({"order_id": import_data["order_id":]}), 200
 
 
+def check_date(delivery_hours, working_hours):
+    timeline = pickle.loads(delivery_hours) + pickle.loads(working_hours)
+    for i in range(len(timeline)):
+        timeline[i] = [list(map(int, _.split(':'))) for _ in timeline[i].split('-')]
+    timeline.sort()
+    for i in range(1, len(timeline)):
+        if timeline[i][0] <= timeline[i - 1][1]:
+            return True
+    return False
+
+
 @app.route('/couriers/<int:courier_id>', methods=['PATCH'])
 def update_couriers(courier_id):
     if not request.is_json:
@@ -138,9 +155,21 @@ def update_couriers(courier_id):
             json_courier[key] = pickle.loads(courier.__dict__[key])
         else:
             json_courier[key] = courier.__dict__[key]
+    orders = Order.query.filter_by(courier_id=courier.courier_id, complete_time=datetime(1, 1, 1))
+    max_weight = 10
+    if courier.courier_type == "bike":
+        max_weight = 15
+    elif courier.courier_type == "car":
+        max_weight = 50
+    regions = pickle.loads(courier.regions)
+    for order in orders:
+        if order.weight > max_weight or order.region not in regions or not check_date(order.delivery_hours,
+                                                                                      courier.working_hours):
+            order.courier_id = 0
+            order.assign_time = datetime(1, 1, 1)
+            order.updated_at = datetime.now()
     courier.updated_at = datetime.now()
     db_session.commit()
-    # TODO: update orders
     return jsonify(json_courier), 200
 
 
