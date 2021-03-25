@@ -26,6 +26,6 @@ class BaseModel(Base):
 
 
 def init_db():
-    # from database.order import Order
-    # from database.courier import Courier
+    from database.order import Order
+    from database.courier import Courier
     Base.metadata.create_all(bind=engine)
