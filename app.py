@@ -152,7 +152,7 @@ def post_orders_assign():
             order.updated_at = datetime.now()
             response['orders'].append({'id': order.order_id})
     if response['orders']:
-        response['assign_time'] = '{}-{}-{}T{}:{}.{}Z'.format(*[_ for _ in datetime.now().timetuple()][:6])
+        response['assign_time'] = '{}-{}-{}T{}:{}.{}Z'.format(*[('0'+str(_))[-2:] for _ in datetime.now().timetuple()][:6])
     db_session.commit()
     return jsonify(response), 200
 
