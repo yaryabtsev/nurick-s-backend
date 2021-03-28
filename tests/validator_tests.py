@@ -24,42 +24,43 @@ class ValidatorTest(unittest.TestCase):
 
         temp_couriers = COURIERS_GOLD.copy()
         temp_couriers['data'][0]['courier_id'] = 0
-        self.assertDictEqual(self.validator.couriers(temp_couriers), {'validation_error': {'couriers': [{'id': 0}]}})
+        self.assertDictEqual({'validation_error': {'couriers': [{'id': 0}]}}, self.validator.couriers(temp_couriers))
 
         temp_couriers['data'][1]['regions'] = []
-        self.assertDictEqual(self.validator.couriers(temp_couriers), {'validation_error': {'couriers': [{'id': 0},
-                                                                                                        {'id': 2}]}})
+        self.assertDictEqual({'validation_error': {'couriers': [{'id': 0}, {'id': 2}]}},
+                             self.validator.couriers(temp_couriers))
+
         temp_couriers['data'][1]['regions'] = [12, 2]
         temp_couriers['data'][2]['working_hours'] = ['9:00-18:00']
-        self.assertDictEqual(self.validator.couriers(temp_couriers), {'validation_error': {'couriers': [{'id': 0},
-                                                                                                        {'id': 3}]}})
+        self.assertDictEqual({'validation_error': {'couriers': [{'id': 0},{'id': 3}]}},
+                             self.validator.couriers(temp_couriers))
 
     def test_orders(self):
         self.assertFalse(self.validator.orders(ORDERS_GOLD))
 
         temp_order = ORDERS_GOLD.copy()
         temp_order['data'][0]['weight'] = 0
-        self.assertDictEqual(self.validator.orders(temp_order), {'validation_error': {'orders': [{'id': 1}]}})
+        self.assertDictEqual({'validation_error': {'orders': [{'id': 1}]}}, self.validator.orders(temp_order))
 
         temp_order['data'][0]['weight'] = 1
         temp_order['data'][1]['region'] = -1
-        self.assertDictEqual(self.validator.orders(temp_order), {'validation_error': {'orders': [{'id': 2}]}})
+        self.assertDictEqual({'validation_error': {'orders': [{'id': 2}]}}, self.validator.orders(temp_order))
 
         temp_order['data'][1]['region'] = 13
         temp_order['data'][0]['add_attribute'] = 0
-        self.assertDictEqual(self.validator.orders(temp_order), {'validation_error': {'orders': [{'id': 1}]}})
+        self.assertDictEqual({'validation_error': {'orders': [{'id': 1}]}}, self.validator.orders(temp_order))
 
     def test_orders_assign(self):
         orders_assign = {'courier_id': 2}
         self.assertFalse(self.validator.orders_assign(orders_assign))
 
         orders_assign = {}
-        self.assertDictEqual(self.validator.orders_assign(orders_assign),
-                             {'validation_error': "'courier_id' is a required property"})
+        self.assertDictEqual({'validation_error': "'courier_id' is a required property"},
+                             self.validator.orders_assign(orders_assign))
 
         orders_assign = {'courier_id': -2}
-        self.assertDictEqual(self.validator.orders_assign(orders_assign),
-                             {'validation_error': '-2 is less than or equal to the minimum of 0'})
+        self.assertDictEqual({'validation_error': '-2 is less than or equal to the minimum of 0'},
+                             self.validator.orders_assign(orders_assign))
 
     def test_patch_courier(self):
         patch_courier = {
@@ -76,8 +77,8 @@ class ValidatorTest(unittest.TestCase):
         self.assertFalse(self.validator.patch_courier_id(patch_courier))
 
         patch_courier = {}
-        self.assertDictEqual(self.validator.patch_courier_id(patch_courier),
-                             {'validation_error': '{} does not have enough properties'})
+        self.assertDictEqual({'validation_error': '{} does not have enough properties'},
+                             self.validator.patch_courier_id(patch_courier))
 
         patch_courier['add_attribute'] = 0
         self.assertTrue(self.validator.patch_courier_id(patch_courier))
@@ -87,13 +88,13 @@ class ValidatorTest(unittest.TestCase):
         self.assertFalse(self.validator.orders_is_complete(temp_gold))
 
         temp_gold['complete_time'] = '2021-13-10T10:33:01.42Z'
-        self.assertDictEqual(self.validator.orders_is_complete(temp_gold),
-                             {'validation_error': "'2021-13-10T10:33:01.42Z' is not a 'date-time'"})
+        self.assertDictEqual({'validation_error': "'2021-13-10T10:33:01.42Z' is not a 'date-time'"},
+                             self.validator.orders_is_complete(temp_gold))
 
         temp_gold['complete_time'] = '2021-12-12T10:33:01.42Z'
         temp_gold['courier_id'] = 0
-        self.assertDictEqual(self.validator.orders_is_complete(temp_gold),
-                             {'validation_error': '0 is less than or equal to the minimum of 0'})
+        self.assertDictEqual({'validation_error': '0 is less than or equal to the minimum of 0'},
+                             self.validator.orders_is_complete(temp_gold))
 
         temp_gold['courier_id'] = 2
         temp_gold['add_attribute'] = 0
