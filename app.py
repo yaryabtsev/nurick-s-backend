@@ -143,18 +143,8 @@ def post_orders_assign():
     regions = pickle.loads(courier.regions)
     orders = Order.query.filter_by(assign_time=datetime(1, 1, 1), courier_id=0,
                                    complete_time=datetime(1, 1, 1))
-    # Order.weight <= max_weight, Order.region in regions)
-    # print("oops")
-    # order1 = Order.query.filter_by(order_id=1).first()
-    # print(order1.assign_time== datetime(1, 1, 1))
-    # print(order1.courier_id==0)
-    # print(order1.complete_time== datetime(1, 1, 1))
-    # print(order1.weight <= max_weight)
-    # print(order1.region in regions)
-    # print(regions)
     response = {'orders': []}
     for order in orders:
-        # print(order.order_id)
         if order.weight <= max_weight and order.region in regions and _check_date(order.delivery_hours,
                                                                                   courier.working_hours):
             order.assign_time = datetime.now()
