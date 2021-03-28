@@ -92,8 +92,7 @@ class AppTest(unittest.TestCase):
 
         response = tester.post('orders/assign', json={'courier_id': 1})
         self.assertEqual(200, response.status_code)
-        self.assertEqual({'тут assign time'}, response.json)
-
+        self.assertEqual({'assign_time': '2021-3-28T23:33.27Z', 'orders': [{'id': 1}, {'id': 3}]}, response.json)
 
 
 if __name__ == '__main__':
