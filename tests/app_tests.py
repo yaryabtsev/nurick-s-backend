@@ -41,12 +41,12 @@ class AppTest(unittest.TestCase):
         self.assertEqual({'validation_error': {'couriers': [{'id': 4}]}}, response.json)
 
         courier_data = {'data': [
-            {'courier_id': 4, 'courier_type': 'foot', 'regions': [1], 'working_hours': ['11:35-14:05']},
-            {'courier_id': 14, 'courier_type': 'car', 'regions': [1, 2], 'working_hours': ['11:35-14:05']},
-            {'courier_id': 24, 'courier_type': 'car', 'regions': [1, 2], 'working_hours': ['18:35-23:05']}]}
+            {'courier_id': 14, 'courier_type': 'foot', 'regions': [1], 'working_hours': ['11:35-14:05']},
+            {'courier_id': 24, 'courier_type': 'car', 'regions': [1, 2], 'working_hours': ['11:35-14:05']},
+            {'courier_id': 34, 'courier_type': 'car', 'regions': [1, 2], 'working_hours': ['18:35-23:05']}]}
         response = tester.post('/couriers', json=courier_data)
         self.assertEqual(201, response.status_code)
-        self.assertEqual({'couriers': [{'id': 4}, {'id': 14}, {'id': 24}]}, response.json)
+        self.assertEqual({'couriers': [{'id': 14}, {'id': 24}, {'id': 34}]}, response.json)
 
     def test_post_orders(self):
         tester = app.app.test_client(self)
@@ -63,15 +63,37 @@ class AppTest(unittest.TestCase):
         self.assertEqual({'validation_error': {'orders': [{'id': 4}]}}, response.json)
 
         order_data = {'data': [
-            {'order_id': 5, 'weight': 0.23, 'region': 12, 'delivery_hours': ['09:00-18:00']},
-            {'order_id': 15, 'weight': 55, 'region': 33, 'delivery_hours': ['09:00-18:00']},
-            {'order_id': 25, 'weight': 100, 'region': 22, 'delivery_hours': ['09:00-12:00', '16:00-21:30']}]}
+            {'order_id': 15, 'weight': 0.23, 'region': 12, 'delivery_hours': ['09:00-18:00']},
+            {'order_id': 25, 'weight': 55, 'region': 33, 'delivery_hours': ['09:00-18:00']},
+            {'order_id': 35, 'weight': 100, 'region': 22, 'delivery_hours': ['09:00-12:00', '16:00-21:30']}]}
         response = tester.post('/orders', json=order_data)
         self.assertEqual(201, response.status_code)
-        self.assertEqual({'orders': [{'id': 5}, {'id': 15}, {'id': 25}]}, response.json)
+        self.assertEqual({'orders': [{'id': 15}, {'id': 25}, {'id': 35}]}, response.json)
 
     def test_patch_courier_id(self):
-        pass
+        tester = app.app.test_client(self)
+
+        # id of courier does not exist
+        patch_data = {'regions': [11, 33, 2]}
+        response = tester.patch('/couriers/100', json=patch_data)
+        self.assertEqual(400, response.status_code)
+
+        response = tester.patch('/couriers/2', json=patch_data)
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({'courier_id': 2, 'courier_type': 'bike', 'regions': [11, 33, 2],
+                          'working_hours': ['09:00-18:00']}, response.json)
+
+    def test_order_assign(self):
+        tester = app.app.test_client(self)
+
+        # id of courier does not exist
+        response = tester.post('orders/assign', json={'courier_id': 100})
+        self.assertEqual(400, response.status_code)
+
+        response = tester.post('orders/assign', json={'courier_id': 1})
+        self.assertEqual(200, response.status_code)
+        self.assertEqual({'тут assign time'}, response.json)
+
 
 
 if __name__ == '__main__':

@@ -89,6 +89,7 @@ def update_couriers(courier_id):
             json_courier[key] = pickle.loads(courier.__dict__[key])
         else:
             json_courier[key] = courier.__dict__[key]
+    courier.updated_at = datetime.now()
     _update_orders(courier)
     return jsonify(json_courier), 200
 
@@ -112,8 +113,18 @@ def _update_orders(courier):
             order.courier_id = 0
             order.assign_time = datetime(1, 1, 1)
             order.updated_at = datetime.now()
-    courier.updated_at = datetime.now()
     db_session.commit()
+
+
+def _check_date(delivery_hours, working_hours) -> bool:
+    timeline = pickle.loads(delivery_hours) + pickle.loads(working_hours)
+    for i in range(len(timeline)):
+        timeline[i] = [list(map(int, _.split(':'))) for _ in timeline[i].split('-')]
+    timeline.sort()
+    for i in range(1, len(timeline)):
+        if timeline[i][0] <= timeline[i - 1][1]:
+            return True
+    return False
 
 
 @app.route('/orders/assign', methods=['POST'])
@@ -127,7 +138,7 @@ def post_orders_assign():
 
     courier = Courier.query.filter_by(courier_id=import_data['courier_id']).first()
     if not courier:
-        raise BadRequest('incorrect id')
+        raise BadRequest('Incorrect id of courier')
     max_weight = _define_courier_type(courier.courier_type)[0]
     regions = pickle.loads(courier.regions)
     orders = Order.query.filter(Order.assign_time == datetime(1, 1, 1), Order.courier_id == 0,
@@ -169,17 +180,6 @@ def post_orders_complete():
     courier.updated_at = datetime.now()
     db_session.commit()
     return jsonify({'order_id': import_data['order_id':]}), 200
-
-
-def _check_date(delivery_hours, working_hours) -> bool:
-    timeline = pickle.loads(delivery_hours) + pickle.loads(working_hours)
-    for i in range(len(timeline)):
-        timeline[i] = [list(map(int, _.split(':'))) for _ in timeline[i].split('-')]
-    timeline.sort()
-    for i in range(1, len(timeline)):
-        if timeline[i][0] <= timeline[i - 1][1]:
-            return True
-    return False
 
 
 @app.route('/couriers/<int:courier_id>', methods=['GET'])
