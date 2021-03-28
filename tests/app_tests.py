@@ -73,6 +73,6 @@ class AppTest(unittest.TestCase):
     def test_patch_courier_id(self):
         pass
 
-    
+
 if __name__ == '__main__':
     unittest.main()

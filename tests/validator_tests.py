@@ -64,7 +64,7 @@ class ValidatorTest(unittest.TestCase):
 
     def test_patch_courier(self):
         patch_courier = {
-            'courier_type': "foot",
+            'courier_type': 'foot',
             'regions': [11, 33, 2],
             'working_hours': ['09:00-18:00']}
         self.assertFalse(self.validator.patch_courier_id(patch_courier))

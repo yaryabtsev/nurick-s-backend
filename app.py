@@ -18,7 +18,6 @@ validator = Validator()
 def post_couriers():
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
-
     import_data = request.get_json()
     errors = validator.couriers(import_data)
     if errors:
@@ -44,7 +43,6 @@ def post_couriers():
 def post_orders():
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
-
     import_data = request.get_json()
     errors = validator.orders(import_data)
     if errors:
@@ -56,7 +54,8 @@ def post_orders():
         if not curr_order:
             new_order = Order(updated_at=datetime.now(), order_id=order['order_id'],
                               weight=order['weight'], region=order['region'],
-                              delivery_hours=pickle.dumps(order['delivery_hours']), assign_time=datetime(1, 1, 1),
+                              delivery_hours=pickle.dumps(order['delivery_hours']),
+                              assign_time=datetime(1, 1, 1),
                               complete_time=datetime(1, 1, 1), courier_id=0)
             db_session.add(new_order)
             orders['orders'].append({'id': order['order_id']})
@@ -70,7 +69,6 @@ def post_orders():
 def update_couriers(courier_id):
     if not request.is_json:
         raise BadRequest('Content-Type must be validator/json')
-
     import_data = request.get_json()
     errors = validator.patch_courier_id(import_data)
     if errors:
@@ -78,35 +76,44 @@ def update_couriers(courier_id):
 
     courier = Courier.query.filter_by(courier_id=courier_id).first()
     if not courier:
-        raise BadRequest('incorrect id')
+        raise BadRequest('Incorrect id of courier')
     for key in import_data:
-        if key in ["regions", "working_hours"]:
+        if key in ['regions', 'working_hours']:
             courier.__dict__[key] = pickle.dumps(import_data[key])
         else:
             courier.__dict__[key] = import_data[key]
 
     json_courier = {}
-    for key in ["courier_id", "courier_type", "regions", "working_hours"]:
-        if key in ["regions", "working_hours"]:
+    for key in ['courier_id', 'courier_type', 'regions', 'working_hours']:
+        if key in ['regions', 'working_hours']:
             json_courier[key] = pickle.loads(courier.__dict__[key])
         else:
             json_courier[key] = courier.__dict__[key]
+    _update_orders(courier)
+    return jsonify(json_courier), 200
+
+
+def _define_courier_type(courier_type: str):
+    if courier_type == 'foot':
+        return 10, 2
+    elif courier_type == 'bike':
+        return 15, 5
+    else:
+        return 50, 9
+
+
+def _update_orders(courier):
     orders = Order.query.filter_by(courier_id=courier.courier_id, complete_time=datetime(1, 1, 1))
-    max_weight = 10
-    if courier.courier_type == "bike":
-        max_weight = 15
-    elif courier.courier_type == "car":
-        max_weight = 50
+    max_weight = _define_courier_type(courier.courier_type)[0]
     regions = pickle.loads(courier.regions)
     for order in orders:
-        if order.weight > max_weight or order.region not in regions or not _check_date(order.delivery_hours,
-                                                                                       courier.working_hours):
+        if order.weight > max_weight or order.region not in regions or \
+                not _check_date(order.delivery_hours, courier.working_hours):
             order.courier_id = 0
             order.assign_time = datetime(1, 1, 1)
             order.updated_at = datetime.now()
     courier.updated_at = datetime.now()
     db_session.commit()
-    return jsonify(json_courier), 200
 
 
 @app.route('/orders/assign', methods=['POST'])
@@ -117,27 +124,24 @@ def post_orders_assign():
     errors = validator.orders_assign(import_data)
     if errors:
         return jsonify(errors), 400
-    courier = Courier.query.filter_by(courier_id=import_data["courier_id"]).first()
+
+    courier = Courier.query.filter_by(courier_id=import_data['courier_id']).first()
     if not courier:
         raise BadRequest('incorrect id')
-    max_weight = 10
-    if courier.courier_type == "bike":
-        max_weight = 15
-    elif courier.courier_type == "car":
-        max_weight = 50
+    max_weight = _define_courier_type(courier.courier_type)[0]
     regions = pickle.loads(courier.regions)
     orders = Order.query.filter(Order.assign_time == datetime(1, 1, 1), Order.courier_id == 0,
                                 Order.complete_time == datetime(1, 1, 1),
                                 Order.weight <= max_weight, Order.region in regions)
-    response = {"orders": []}
+    response = {'orders': []}
     for order in orders:
         if _check_date(order.delivery_hours, courier.working_hours):
             order.assign_time = datetime.now()
             order.courier_id = courier.courier_id
             order.updated_at = datetime.now()
-            response["orders"].append({'id': order['orders_id']})
-    if response["orders"]:
-        response["assign_time"] = "{}-{}-{}T{}:{}.{}Z".format(*[_ for _ in datetime.now().timetuple()][:6])
+            response['orders'].append({'id': order['orders_id']})
+    if response['orders']:
+        response['assign_time'] = '{}-{}-{}T{}:{}.{}Z'.format(*[_ for _ in datetime.now().timetuple()][:6])
     db_session.commit()
     return jsonify(response), 200
 
@@ -150,24 +154,21 @@ def post_orders_complete():
     errors = validator.orders_is_complete(import_data)
     if errors:
         return jsonify(errors), 400
-    order = Order.query.filter_by(order_id=import_data["order_id"], courier_id=import_data["courier_id"],
+    order = Order.query.filter_by(order_id=import_data['order_id'], courier_id=import_data['courier_id'],
                                   complete_time=datetime(1, 1, 1)).first()
     if not order:
         raise BadRequest('incorrect ids')
-    order.complete_time = datetime(*list(map(int, re.findall(r'\d+', import_data["complete_time"]))))
+    order.complete_time = datetime(*list(map(int, re.findall(r'\d+', import_data['complete_time']))))
     order.updated_at = datetime.now()
-    courier = Courier.query.filter_by(courier_id=import_data["courier_id"]).first()
+    courier = Courier.query.filter_by(courier_id=import_data['courier_id']).first()
     if not order:
         raise BadRequest('incorrect courier_id')
-    c = 2
-    if courier.courier_type == "bike":
-        c = 5
-    elif courier.courier_type == "car":
-        c = 9
+
+    c = _define_courier_type(courier.courier_type)[1]
     courier.earnings += 500 * c
     courier.updated_at = datetime.now()
     db_session.commit()
-    return jsonify({"order_id": import_data["order_id":]}), 200
+    return jsonify({'order_id': import_data['order_id':]}), 200
 
 
 def _check_date(delivery_hours, working_hours) -> bool:
@@ -188,8 +189,8 @@ def get_couriers(courier_id):
         raise BadRequest('incorrect id')
 
     json_courier = {}
-    for key in ["courier_id", "courier_type", "regions", "working_hours", "rating", "earnings"]:
-        if key == "rating" and courier.rating == 0:
+    for key in ['courier_id', 'courier_type', 'regions', 'working_hours', 'rating', 'earnings']:
+        if key == 'rating' and courier.rating == 0:
             regions = pickle.loads(courier.regions)
             sum_time = [0] * len(regions)
             last_orders_id = [0] * len(regions)
@@ -207,7 +208,7 @@ def get_couriers(courier_id):
             td = [sum_time[i] / count_orders[i] for i in range(len(regions))]
             rating = (60 * 60 - min(min(td), 60 * 60)) / (60 * 60) * 5
             json_courier[key] = rating
-        if key in ["regions", "working_hours"]:
+        if key in ['regions', 'working_hours']:
             json_courier[key] = pickle.loads(courier.__dict__[key])
         else:
             json_courier[key] = courier.__dict__[key]
